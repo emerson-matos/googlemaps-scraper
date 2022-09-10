@@ -59,8 +59,9 @@ if __name__ == '__main__':
 
                         # logging to std out
                         print(colored('[Review ' + str(n) + ']', 'cyan'))
-
+# tag dos reviews ==> jftiEf
                         reviews = scraper.get_reviews(n)
+                        print(args.N)
                         if len(reviews) == 0:
                             break
 

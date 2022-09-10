@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from datetime import datetime
 import time
-import re
 import logging
 import traceback
 import numpy as np
@@ -55,7 +52,7 @@ class GoogleMapsScraper:
                 #if not self.debug:
                 #    menu_bt = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div.cYrDcjyGO77__container')))
                 #else:
-                menu_bt = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@data-value=\'Sort\']')))
+                menu_bt = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@data-value=\'Ordenar\']')))
                 menu_bt.click()
 
                 clicked = True
@@ -167,7 +164,6 @@ class GoogleMapsScraper:
 
         self.__scroll()
 
-
         # expand review text
         self.__expand_reviews()
 
@@ -176,12 +172,14 @@ class GoogleMapsScraper:
         # TODO: Subject to changes
         rblock = response.find_all('div', class_='jftiEf fontBodyMedium')
         parsed_reviews = []
+
         for index, review in enumerate(rblock):
             if index >= offset:
-                parsed_reviews.append(self.__parse(review))
+                parsed = self.__parse(review)
+                parsed_reviews.append(parsed)
 
                 # logging to std out
-                print(self.__parse(review))
+                # print(parsed)
 
         return parsed_reviews
 
@@ -203,7 +201,6 @@ class GoogleMapsScraper:
     def __parse(self, review):
 
         item = {}
-
 
         try:
             # TODO: Subject to changes
@@ -337,7 +334,7 @@ class GoogleMapsScraper:
 
         options.add_argument("--disable-notifications")
         options.add_argument("--lang=en-GB")
-        input_driver = webdriver.Chrome(executable_path=ChromeDriverManager(log_level=0).install(), options=options)
+        input_driver = webdriver.Remote("http://localhost:4444/wd/hub", DesiredCapabilities.CHROME, options=options)
 
          # first lets click on google agree button so we can continue
         try:
