@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 from googlemaps import GoogleMapsScraper
-from datetime import datetime, timedelta
 import argparse
 import csv
 from termcolor import colored
-import time
 
 
 ind = {'most_relevant' : 0 , 'newest' : 1, 'highest_rating' : 2, 'lowest_rating' : 3 }
@@ -59,7 +57,7 @@ if __name__ == '__main__':
 
                         # logging to std out
                         print(colored('[Review ' + str(n) + ']', 'cyan'))
-# tag dos reviews ==> jftiEf
+
                         reviews = scraper.get_reviews(n)
 
                         if len(reviews) == 0:
