@@ -52,7 +52,7 @@ class GoogleMapsScraper:
                 #if not self.debug:
                 #    menu_bt = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div.cYrDcjyGO77__container')))
                 #else:
-                menu_bt = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@data-value=\'Ordenar\']')))
+                menu_bt = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Mais relevantes"]')))
                 menu_bt.click()
 
                 clicked = True
