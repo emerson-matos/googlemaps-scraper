@@ -11,7 +11,7 @@
       "program": "scraper.py",
       "console": "integratedTerminal",
       "justMyCode": true,
-      "args": ["--debug"],
+      // "args": ["--debug"],
       "autoReload": {
         "enable": true
       }

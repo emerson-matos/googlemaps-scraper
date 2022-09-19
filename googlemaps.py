@@ -52,7 +52,9 @@ class GoogleMapsScraper:
                 #if not self.debug:
                 #    menu_bt = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'div.cYrDcjyGO77__container')))
                 #else:
-                menu_bt = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Mais relevantes"]')))
+                wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@jsaction="pane.rating.moreReviews"] | //button[@jsaction="pane.reviewChart.moreReviews"]'))).click()
+                                                                            
+                menu_bt = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Mais relevantes"] | //button[@aria-label="Classificar avaliações"]')))
                 menu_bt.click()
 
                 clicked = True
@@ -324,7 +326,8 @@ class GoogleMapsScraper:
         return logger
 
 
-    def __get_driver(self, debug=False):
+    def __get_driver(self):
+        print('iniciando webdriver')
         options = Options()
 
         if not self.debug:
@@ -335,8 +338,9 @@ class GoogleMapsScraper:
         options.add_argument("--disable-notifications")
         options.add_argument("--lang=en-GB")
         input_driver = webdriver.Remote("http://localhost:4444/wd/hub", DesiredCapabilities.CHROME, options=options)
+        print('webdriver carregado')
 
-         # first lets click on google agree button so we can continue
+        # first lets click on google agree button so we can continue
         try:
             input_driver.get(GM_WEBPAGE)
             agree = WebDriverWait(input_driver, 10).until(
