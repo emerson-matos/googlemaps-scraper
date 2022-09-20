@@ -6,15 +6,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 from datetime import datetime
 import time
-import logging
 import traceback
 import numpy as np
 import itertools
 
+from customlogger import get_logger
 
 GM_WEBPAGE = 'https://www.google.com/maps/'
 MAX_WAIT = 10
@@ -25,8 +24,8 @@ class GoogleMapsScraper:
 
     def __init__(self, debug=False):
         self.debug = debug
+        self.logger = get_logger('scraper')
         self.driver = self.__get_driver()
-        self.logger = self.__get_logger()
 
     def __enter__(self):
         return self
@@ -34,6 +33,7 @@ class GoogleMapsScraper:
     def __exit__(self, exc_type, exc_value, tb):
         if exc_type is not None:
             traceback.print_exception(exc_type, exc_value, tb)
+            self.logger.exception(exc_value)
 
         self.driver.close()
         self.driver.quit()
@@ -68,7 +68,7 @@ class GoogleMapsScraper:
                 return -1
 
         #  element of the list specified according to ind
-        recent_rating_bt = self.driver.find_elements_by_xpath('//li[@role=\'menuitemradio\']')[ind]
+        recent_rating_bt = self.driver.find_elements(By.XPATH, '//li[@role=\'menuitemradio\']')[ind]
         recent_rating_bt.click()
 
         # wait to load review (ajax call)
@@ -106,7 +106,7 @@ class GoogleMapsScraper:
                 self.driver.get(search_point_url)
 
             # Gambiarra to load all places into the page
-            scrollable_div = self.driver.find_element_by_css_selector(
+            scrollable_div = self.driver.find_element(By.CSS_SELECTOR,
                 "div.siAUzd-neVct.section-scrollbox.cYB2Ge-oHo7ed.cYB2Ge-ti6hGc > div[aria-label*='Results for']")
             for i in range(10):
                 self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', scrollable_div)
@@ -157,7 +157,7 @@ class GoogleMapsScraper:
 
 
 
-    def get_reviews(self, offset):
+    def get_reviews(self, writer):
 
         # scroll to load reviews
 
@@ -175,13 +175,12 @@ class GoogleMapsScraper:
         rblock = response.find_all('div', class_='jftiEf fontBodyMedium')
         parsed_reviews = []
 
-        for index, review in enumerate(rblock):
-            if index >= offset:
-                parsed = self.__parse(review)
-                parsed_reviews.append(parsed)
-
-                # logging to std out
-                # print(parsed)
+        for review in rblock:
+            parsed = self.__parse(review)
+            parsed_reviews.append(parsed)
+            writer.writerow(parsed.values())
+            # logging to std out
+            # print(parsed)
 
         return parsed_reviews
 
@@ -292,7 +291,7 @@ class GoogleMapsScraper:
     def __expand_reviews(self):
         # use XPath to load complete reviews
         # TODO: Subject to changes
-        links = self.driver.find_elements_by_xpath('//button[@jsaction="pane.review.expandReview"]')
+        links = self.driver.find_elements(By.XPATH, '//button[@jsaction="pane.review.expandReview"]')
         for l in links:
             l.click()
         time.sleep(2)
@@ -300,35 +299,13 @@ class GoogleMapsScraper:
 
     def __scroll(self):
         # TODO: Subject to changes
-        scrollable_div = self.driver.find_element_by_css_selector('div.m6QErb.DxyBCb.kA9KIf.dS8AEf')
+        scrollable_div = self.driver.find_element(By.CSS_SELECTOR, 'div.m6QErb.DxyBCb.kA9KIf.dS8AEf')
         self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', scrollable_div)
         #self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
-
-    def __get_logger(self):
-        # create logger
-        logger = logging.getLogger('googlemaps-scraper')
-        logger.setLevel(logging.DEBUG)
-
-        # create console handler and set level to debug
-        fh = logging.FileHandler('gm-scraper.log')
-        fh.setLevel(logging.DEBUG)
-
-        # create formatter
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-        # add formatter to ch
-        fh.setFormatter(formatter)
-
-        # add ch to logger
-        logger.addHandler(fh)
-
-        return logger
-
-
     def __get_driver(self):
-        print('iniciando webdriver')
-        options = Options()
+        self.logger.info('iniciando webdriver')
+        options = webdriver.ChromeOptions()
 
         if not self.debug:
             options.add_argument("--headless")
@@ -338,7 +315,7 @@ class GoogleMapsScraper:
         options.add_argument("--disable-notifications")
         options.add_argument("--lang=en-GB")
         input_driver = webdriver.Remote("http://localhost:4444/wd/hub", DesiredCapabilities.CHROME, options=options)
-        print('webdriver carregado')
+        self.logger.info('webdriver carregado')
 
         # first lets click on google agree button so we can continue
         try:
