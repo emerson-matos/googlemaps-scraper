@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from argparse import Namespace
 import pandas as pd
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
@@ -14,6 +15,7 @@ import numpy as np
 import itertools
 
 from customlogger import get_logger
+from dateutils import parse_relative_date
 
 GM_WEBPAGE = 'https://www.google.com/maps/'
 MAX_WAIT = 10
@@ -59,9 +61,9 @@ class GoogleMapsScraper:
 
                 clicked = True
                 time.sleep(3)
-            except Exception as e:
+            except Exception:
                 tries += 1
-                self.logger.warn('Failed to click sorting button')
+                self.logger.warn('Failed to click sorting button ' + url)
 
             # failed to open the dropdown
             if tries == MAX_RETRY:
@@ -81,7 +83,8 @@ class GoogleMapsScraper:
         df_places = pd.DataFrame()
 
         if method == 'urls':
-            # search_point_url = row['url']  # TODO:
+            # TODO:
+            # search_point_url = row['url']  
             pass
         if method == 'squares':
             search_point_url_list = self._gen_search_points_from_square(keyword_list=keyword_list)
@@ -157,7 +160,7 @@ class GoogleMapsScraper:
 
 
 
-    def get_reviews(self, writer):
+    def get_reviews(self, writer, args = Namespace()):
 
         # scroll to load reviews
 
@@ -178,9 +181,11 @@ class GoogleMapsScraper:
         for review in rblock:
             parsed = self.__parse(review)
             parsed_reviews.append(parsed)
-            writer.writerow(parsed.values())
-            # logging to std out
-            # print(parsed)
+            if not (args.today and parse_relative_date(parsed['retrieval_date'], parsed['relative_date']) < args.today):
+                writer.writerow(parsed.values())
+            else:
+                self.logger.debug('breaking:\t%s', (parsed['relative_date']))
+                return parsed_reviews
 
         return parsed_reviews
 
@@ -206,51 +211,58 @@ class GoogleMapsScraper:
         try:
             # TODO: Subject to changes
             id_review = review['data-review-id']
-        except Exception as e:
+        except Exception:
             id_review = None
     
         try:
             # TODO: Subject to changes
             username = review['aria-label']
-        except Exception as e:
+        except Exception:
             username = None
     
         try:
             # TODO: Subject to changes
             review_text = self.__filter_string(review.find('span', class_='wiI7pd').text)
-        except Exception as e:
+        except Exception:
             review_text = None
 
         try:
             # TODO: Subject to changes
-            rating = float(review.find('span', class_='kvMYJc')['aria-label'].split(' ')[1])
-        except Exception as e:
+            rating_arr = review.find('span', class_='kvMYJc')
+            rating_str = '-1'
+            if rating_arr and rating_arr.get('aria-label'):
+                rating_str = rating_arr['aria-label'].split(' ')[1]
+            else:
+                rating_str = review.find('span', class_='fzvQIb').text.strip().split('/')[0]
+            rating = int(rating_str)
+                
+        except Exception:
             rating = None
 
         try:
             # TODO: Subject to changes
-            relative_date = review.find('span', class_='rsqaWe').text
-        except Exception as e:
+            relative_date = review.find('span', class_='xRkPPb').find('span').text.strip()
+        except Exception:
             relative_date = None        
 
-        try:
-            n_reviews_photos = review.find('div', class_='section-review-subtitle').find_all('span')[1].text
-            metadata = n_reviews_photos.split('\xe3\x83\xbb')
-            if len(metadata) == 3:
-                n_photos = int(metadata[2].split(' ')[0].replace('.', ''))
-            else:
-                n_photos = 0
+        # try:
+        #     n_reviews_photos = review.find('div', class_='section-review-subtitle').find_all('span')[1].text
+        #     metadata = n_reviews_photos.split('\xe3\x83\xbb')
+        #     if len(metadata) == 3:
+        #         n_photos = int(metadata[2].split(' ')[0].replace('.', ''))
+        #     else:
+        #         n_photos = 0
 
-            idx = len(metadata)
-            n_reviews = int(metadata[idx - 1].split(' ')[0].replace('.', ''))
+        #     idx = len(metadata)
+        #     n_reviews = int(metadata[idx - 1].split(' ')[0].replace('.', ''))
 
-        except Exception as e:
-            n_reviews = 0
-            n_photos = 0
+        # except Exception as e:
+        #     n_reviews = 0
+        #     n_photos = 0
 
         try:
             user_url = review.find('a')['href']
-        except Exception as e:
+        except Exception:
             user_url = None
 
         item['id_review'] = id_review
@@ -265,8 +277,10 @@ class GoogleMapsScraper:
         item['retrieval_date'] = datetime.now()
         item['rating'] = rating
         item['username'] = username
-        item['n_review_user'] = n_reviews
-        item['n_photo_user'] = n_photos
+        item['n_review_user'] = 0
+        # n_reviews
+        item['n_photo_user'] = 0
+        # n_photos
         item['url_user'] = user_url
 
         return item
@@ -277,12 +291,12 @@ class GoogleMapsScraper:
         place = {}
         try:
             place['overall_rating'] = float(response.find('div', class_='gm2-display-2').text.replace(',', '.'))
-        except:
+        except Exception:
             place['overall_rating'] = 'NOT FOUND'
 
         try:
             place['n_reviews'] = int(response.find('div', class_='gm2-caption').text.replace('.', '').replace(',','').split(' ')[0])
-        except:
+        except Exception:
             place['n_reviews'] = 0
 
         return place
@@ -326,7 +340,7 @@ class GoogleMapsScraper:
 
             # back to the main page
             input_driver.switch_to_default_content()
-        except:
+        except Exception:
             pass
 
         return input_driver
@@ -334,5 +348,4 @@ class GoogleMapsScraper:
 
     # util function to clean special characters
     def __filter_string(self, str):
-        strOut = str.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ')
-        return strOut
+        return str.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ')

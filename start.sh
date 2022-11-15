@@ -9,4 +9,4 @@ while ! curl -sSL "http://localhost:4444/wd/hub/status" 2>&1 \
 done
 
 source /home/emerson/git/tcc/googlemaps-scraper/.venv/bin/activate
-python scraper.py &
+python scraper.py --i input.csv

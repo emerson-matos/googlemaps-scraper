@@ -1,1 +1,2 @@
-https://www.google.com/maps/place/Ibis+Hotels+Santo+Andr%C3%A9/@-23.6468971,-46.5350733,17z/data=!4m12!3m11!1s0x0:0x299cbcf5d77d3c4a!5m4!1s2022-11-28!2i5!4m1!1i2!8m2!3d-23.6468971!4d-46.5350733!9m1!1b1
+url,limit,name
+https://maps.google.com/?cid=2998479215990225994,2360,Ibis Hotels Santo André
